@@ -179,17 +179,8 @@ class ZoomHandler extends EngineObject {
 	}
 
 	private handleWheel(event: WheelEvent) {
-		const zoomIntensity = 0.1;
-		const zoom = 1 + (event.deltaY > 0 ? -zoomIntensity : zoomIntensity);
+		const { deltaY } = event;
 
-		const mouseX = this.engine.cursor.pos.x;
-		const mouseY = this.engine.cursor.pos.y;
-
-		this.zoom2(zoom, event.deltaY);
-		event.preventDefault();
-	}
-
-	private zoom2(zoom: number, deltaY: number) {
 		const { offset } = this.engine;
 		const pos = this.engine.cursor.pos;
 		const npos = {
@@ -197,44 +188,25 @@ class ZoomHandler extends EngineObject {
 			y: pos.y
 		}
 
-		// Calculate the cursor position in world coordinates before zooming
 		const before = screenToWorld(npos, {
 			zoom: 1,
-			offset: offset,
+			offset
 		});
 
-		// Adjust the zoom level based on the scroll event
 		const zoomFactor = 1.1;
 		const g = deltaY < 0 ? zoomFactor : 1 / zoomFactor;
 
 		this.engine.zoom *= g;
 
-		// Calculate the cursor position in world coordinates after zooming
 		const after = screenToWorld(npos, {
 			zoom: g,
-			offset: offset,
+			offset
 		});
 
-		// Calculate the difference in world coordinates
-		const dx = before.x - after.x;
-		const dy = before.y - after.y;
+		this.engine.offset.x += before.x - after.x;
+		this.engine.offset.y += before.y - after.y;
 
-		// Adjust the center by this difference to keep the cursor in the same position
-		this.engine.offset.x += dx;
-		this.engine.offset.y += dy;
-	}
-
-	private zoom(mouseX: number, mouseY: number, zoom: number) {
-		const { offset } = this.engine;
-		const pos = this.engine.cursor.pos;
-		const worldMouse = screenToWorld(pos, { offset, zoom: this.engine.zoom });
-
-		this.engine.zoom *= zoom;
-
-		const newWorldMouse = screenToWorld(pos, { offset, zoom: this.engine.zoom });
-
-		this.engine.offset.x += worldMouse.x - newWorldMouse.x;
-		this.engine.offset.y += worldMouse.y - newWorldMouse.y;
+		event.preventDefault();
 	}
 }
 
