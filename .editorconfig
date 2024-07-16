@@ -1,0 +1,18 @@
+# EditorConfig is awesome: https://EditorConfig.org
+# Orago is also awesome: https://orago.me
+# top-most EditorConfig file
+root = true
+
+[*]
+indent_style = tab
+indent_size = 4
+end_of_line = crlf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = false
+
+[*.js]
+quote_type = single
+
+[*.ts]
+quote_type = single

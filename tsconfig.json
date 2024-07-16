@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"outDir": "./dist/",
+		// "noImplicitAny": true,
+		"module": "ESNext",
+		"target": "es2022",
+		"allowJs": true,
+		"strict": true,
+		"baseUrl": "./lib/", /* Specify the base directory to resolve non-relative module names. */
+		"lib": [
+			"DOM",
+			"ES5"
+		],
+		"moduleResolution": "Bundler",
+		"strictPropertyInitialization": false, /* Check for class properties that are declared but not set in the constructor. */
+	}
+}
