@@ -11,59 +11,6 @@ const sprites = new Sprites({ host: '/sprites/' });
 const tileset = sprites.get('/demo-set.png');
 const baseTileSize = 32;
 
-class PanningPlugin extends EngineObject {
-	start = { x: 0, y: 0 };
-	offset = { x: 0, y: 0 };
-	change = { x: 0, y: 0 };
-	state?: boolean = false;
-
-	constructor(engine: Engine) {
-		super(engine);
-
-		const { cursor } = engine;
-
-		cursor.events.on('move', () => {
-			if (engine.keyboard.isPressed(' ')) {
-				this.move();
-
-
-			}
-			else if (this.state) {
-				this.state = false;
-				this.reset();
-			}
-		});
-	}
-
-	move() {
-		const { cursor } = engine;
-
-		if (this.state != true) {
-			this.state = true;
-
-			this.start = {
-				x: cursor.pos.x,
-				y: cursor.pos.y
-			}
-		}
-
-		this.change.x = cursor.pos.x - this.start.x;
-		this.change.y = cursor.pos.y - this.start.y;
-
-		engine.offset.x = (this.offset.x + this.change.x);
-		engine.offset.y = (this.offset.y + this.change.y);
-	}
-
-	reset() {
-		this.offset.x += this.change.x;
-		this.offset.y += this.change.y;
-		engine.offset.x = this.offset.x;
-		engine.offset.y = this.offset.y;
-		this.change.x = 0;
-		this.change.y = 0;
-	}
-}
-
 class TextEntity extends EngineObject {
 	fontSize = 20;
 	text: string = '';
@@ -124,24 +71,14 @@ class World extends EngineObject {
 
 		cursor.events.on('move', () => {
 			if (cursor.down) {
-				// const pos = engine.screenToWorld(engine.cursor.pos);
-				const k = {
-					x: cursor.pos.x / baseTileSize,
-					y: cursor.pos.y / baseTileSize
-				}
-
 				const scaled = screenToGrid(cursor.pos, baseTileSize, { offset: engine.offset, zoom: engine.zoom });
 
-				// const scaled = {
-				// 	x: (cursor.pos.x - engine.offset.x) / baseTileSize / engine.zoom,
-				// 	y: (cursor.pos.y - engine.offset.y) / baseTileSize / engine.zoom
-				// }
-
-				this.setAt(
-					scaled.x | 0,
-					scaled.y | 0,
-					0
-				);
+				if (cursor.button == 0) {
+					this.tiles.set(scaled, 0);
+				}
+				else if (cursor.button == 2) {
+					this.tiles.delete(scaled);
+				}
 			}
 		});
 
@@ -161,24 +98,45 @@ class World extends EngineObject {
 			}
 		});
 	}
-
-	setAt(x: number, y: number, tile: number) {
-		this.tiles.set({ x, y }, tile);
-	}
-
-	getAt(x: number, y: number) {
-		return this.tiles.get({ x, y });
-	}
 }
 
-class ZoomHandler extends EngineObject {
+class PanAndZoomHandler extends EngineObject {
+	modes = {
+		panning: false,
+		zoom: false
+	};
+
+	pan = {
+		start: { x: 0, y: 0 },
+		offset: { x: 0, y: 0 },
+		change: { x: 0, y: 0 },
+		state: false,
+		active: false
+	};
+
 	constructor(engine: Engine) {
 		super(engine);
 
 		this.engine.brush.canvas.addEventListener('wheel', this.handleWheel.bind(this));
+
+		const { cursor } = engine;
+
+		cursor.events.on('move', () => this.panTick());
+		cursor.events.on('middle', () => this.pan.active = true);
+		cursor.events.on('middle-release', () => this.pan.active = false);
+	}
+
+	toggleModes(status: boolean, modes: (keyof typeof this.modes)[]) {
+		for (const mode of modes) {
+			this.modes[mode] = status;
+		}
+
+		return this;
 	}
 
 	private handleWheel(event: WheelEvent) {
+		if (this.modes.panning != true) return;
+
 		const { deltaY } = event;
 
 		const { offset } = this.engine;
@@ -208,10 +166,49 @@ class ZoomHandler extends EngineObject {
 
 		event.preventDefault();
 	}
+
+	panTick() {
+		if (this.modes.panning != true) return;
+
+		if (this.pan.active)
+			this.panMove();
+
+		else if (this.pan.state)
+			this.panReset();
+	}
+
+	panMove() {
+		const { cursor } = engine;
+
+		if (this.pan.state != true) {
+			this.pan.state = true;
+
+			this.pan.start = {
+				x: cursor.pos.x,
+				y: cursor.pos.y
+			}
+		}
+
+		this.pan.change.x = cursor.pos.x - this.pan.start.x;
+		this.pan.change.y = cursor.pos.y - this.pan.start.y;
+
+		engine.offset.x = (this.pan.offset.x + this.pan.change.x);
+		engine.offset.y = (this.pan.offset.y + this.pan.change.y);
+	}
+
+	panReset() {
+		this.pan.state = false;
+
+		this.pan.offset.x += this.pan.change.x;
+		this.pan.offset.y += this.pan.change.y;
+		engine.offset.x = this.pan.offset.x;
+		engine.offset.y = this.pan.offset.y;
+		this.pan.change.x = 0;
+		this.pan.change.y = 0;
+	}
 }
 
-new PanningPlugin(engine).addTo();
-new ZoomHandler(engine).addTo();
+new PanAndZoomHandler(engine).addTo().toggleModes(true, ['zoom', 'panning']);
 new World(engine).addTo();
 
 
