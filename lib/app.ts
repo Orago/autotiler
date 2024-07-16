@@ -4,7 +4,7 @@ import Sprites from '@orago/game/sprites';
 import Engine, { EngineObject } from '@orago/game/engine';
 import { AutotilingMaster } from './autotilingManager';
 import { drawGridBackground } from './gridBackground';
-import { Vector2Map } from '@orago/vector';
+import { Position2D, Vector2, Vector2Map } from '@orago/vector';
 import { screenToGrid, screenToWorld, worldToScreen } from './transform';
 
 const sprites = new Sprites({ host: '/sprites/' });
@@ -192,20 +192,27 @@ class ZoomHandler extends EngineObject {
 	private zoom2(zoom: number, deltaY: number) {
 		const { offset } = this.engine;
 		const pos = this.engine.cursor.pos;
-		let center = { x: 0, y: 0 };
+		const npos = {
+			x: pos.x,
+			y: pos.y
+		}
 
 		// Calculate the cursor position in world coordinates before zooming
-		const before = screenToWorld(pos, {
-			zoom: this.engine.zoom
+		const before = screenToWorld(npos, {
+			zoom: 1,
+			offset: offset,
 		});
 
 		// Adjust the zoom level based on the scroll event
 		const zoomFactor = 1.1;
-		this.engine.zoom *= deltaY < 0 ? zoomFactor : 1 / zoomFactor;
+		const g = deltaY < 0 ? zoomFactor : 1 / zoomFactor;
+
+		this.engine.zoom *= g;
 
 		// Calculate the cursor position in world coordinates after zooming
-		const after = screenToWorld(pos, {
-			zoom: this.engine.zoom
+		const after = screenToWorld(npos, {
+			zoom: g,
+			offset: offset,
 		});
 
 		// Calculate the difference in world coordinates
